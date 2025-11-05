@@ -234,15 +234,26 @@ void set_cross_emojis(struct swaylock_state *state) {
 	// Cross emoji: ❌
 	const char *cross = "\xE2\x9D\x8C";
 
-	// Set all 3 slots to crosses
+	// Save old emojis to fall off screen
+	if (state->has_emojis) {
+		for (int i = 0; i < 3; i++) {
+			strcpy(state->old_slot_emojis[i], state->slot_emojis[i]);
+			state->old_emoji_y_positions[i] = state->emoji_y_positions[i];
+		}
+		state->has_old_emojis = true;
+	}
+
+	// Set all 3 slots to crosses and start them above screen
 	for (int i = 0; i < 3; i++) {
 		strcpy(state->slot_emojis[i], cross);
-		// state->emoji_y_positions[i] = 0.0; // Will be set properly during render
+		// Start crosses at different heights above screen (same as regular emojis)
+		state->emoji_y_positions[i] = -100.0 - (i * 30.0);
 	}
 
 	state->has_emojis = true;
-	state->emoji_animating = false;  // No animation for error state
-	state->has_old_emojis = false;   // No old emojis
+	state->emoji_animating = true;  // Enable smooth fall animation
+	state->emoji_target_y = 0.0;    // Will be set properly during render
+	schedule_animation(state);
 }
 
 void swaylock_handle_key(struct swaylock_state *state,
