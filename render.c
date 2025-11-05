@@ -232,7 +232,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 			// Use emoji font for size calculation too
 			cairo_select_font_face(state->test_cairo, "Noto Color Emoji",
 				CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-			int emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : arc_radius;
+			uint32_t emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : (uint32_t)arc_radius;
 			cairo_set_font_size(state->test_cairo, emoji_size);
 
 			cairo_text_extents_t extents;
@@ -448,7 +448,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		}
 
 		// Make emojis bigger - 3x the normal text size
-		int emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : arc_radius;
+		uint32_t emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : (uint32_t)arc_radius;
 		cairo_set_font_size(cairo, emoji_size);
 
 		cairo_text_extents_t extents;
