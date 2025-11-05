@@ -147,15 +147,15 @@ static bool render_frame(struct swaylock_surface *surface) {
 	if (draw_indicator) {
 		if (state->input_state == INPUT_STATE_CLEAR) {
 			// This message has highest priority
-			text = "Cleared";
+			text = "clr";
 		} else if (state->auth_state == AUTH_STATE_VALIDATING) {
-			text = "Verifying";
+			text = "...";
 		} else if (state->auth_state == AUTH_STATE_INVALID) {
-			text = "Wrong";
+			text = "fuck u";
 		} else {
 			// Caps Lock has higher priority
 			if (state->xkb.caps_lock && state->args.show_caps_lock_text) {
-				text = "Caps Lock";
+				text = "caps";
 			} else if (state->args.show_failed_attempts &&
 					state->failed_attempts > 0) {
 				if (state->failed_attempts > 999) {
