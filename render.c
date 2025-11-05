@@ -162,7 +162,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		} else if (state->auth_state == AUTH_STATE_VALIDATING) {
 			text = "...";
 		} else if (state->auth_state == AUTH_STATE_INVALID) {
-			text = "fuck u";
+			text = "f";
 		} else {
 			// Caps Lock has higher priority
 			if (state->xkb.caps_lock && state->args.show_caps_lock_text) {
