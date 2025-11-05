@@ -138,11 +138,22 @@ static bool render_frame(struct swaylock_surface *surface) {
 	char attempts[4]; // like i3lock: count no more than 999
 	char *text = NULL;
 	const char *layout_text = NULL;
+	char *asterisks = NULL;
 
 	bool draw_indicator = state->args.show_indicator &&
 		(state->auth_state != AUTH_STATE_IDLE ||
 			state->input_state != INPUT_STATE_IDLE ||
 			state->args.indicator_idle_visible);
+
+	// Create asterisk string based on password length
+	size_t password_len = state->password.len;
+	if (password_len > 0) {
+		asterisks = malloc(password_len + 1);
+		if (asterisks) {
+			memset(asterisks, '*', password_len);
+			asterisks[password_len] = '\0';
+		}
+	}
 
 	if (draw_indicator) {
 		if (state->input_state == INPUT_STATE_CLEAR) {
@@ -192,7 +203,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 	int buffer_width = buffer_diameter;
 	int buffer_height = buffer_diameter;
 
-	if (text || layout_text) {
+	if (text || layout_text || asterisks) {
 		cairo_set_antialias(state->test_cairo, CAIRO_ANTIALIAS_BEST);
 		configure_font_drawing(state->test_cairo, state, surface->subpixel, arc_radius);
 
@@ -212,6 +223,19 @@ static bool render_frame(struct swaylock_surface *surface) {
 			buffer_height += fe.height + 2 * box_padding;
 			if (buffer_width < extents.width + 2 * box_padding) {
 				buffer_width = extents.width + 2 * box_padding;
+			}
+		}
+		if (asterisks) {
+			cairo_text_extents_t extents;
+			cairo_font_extents_t fe;
+			cairo_text_extents(state->test_cairo, asterisks, &extents);
+			cairo_font_extents(state->test_cairo, &fe);
+			if (buffer_width < extents.width) {
+				buffer_width = extents.width;
+			}
+			// Add height for asterisks if indicator is hidden
+			if (!draw_indicator) {
+				buffer_height = fe.height * 2;
 			}
 		}
 	}
@@ -385,6 +409,36 @@ static bool render_frame(struct swaylock_surface *surface) {
 			cairo_show_text(cairo, layout_text);
 			cairo_new_sub_path(cairo);
 		}
+	}
+
+	// Draw asterisks for password (independent of indicator)
+	if (asterisks) {
+		configure_font_drawing(cairo, state, surface->subpixel, arc_radius);
+		cairo_text_extents_t extents;
+		cairo_font_extents_t fe;
+		double x, y;
+
+		cairo_text_extents(cairo, asterisks, &extents);
+		cairo_font_extents(cairo, &fe);
+
+		// Center the asterisks
+		x = (buffer_width / 2) - (extents.width / 2 + extents.x_bearing);
+
+		if (draw_indicator) {
+			// If indicator is shown, place below it
+			y = buffer_diameter + fe.height;
+		} else {
+			// If no indicator, center vertically
+			y = (buffer_height / 2) + (fe.height / 2 - fe.descent);
+		}
+
+		cairo_move_to(cairo, x, y);
+		set_color_for_state(cairo, state, &state->args.colors.text);
+		cairo_show_text(cairo, asterisks);
+		cairo_close_path(cairo);
+		cairo_new_sub_path(cairo);
+
+		free(asterisks);
 	}
 
 	// Send Wayland requests
