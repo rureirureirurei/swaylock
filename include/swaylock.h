@@ -19,6 +19,7 @@ struct emoji_particle {
 	double rotation_speed;    // Rotation rate (radians/sec)
 	char emoji[5];            // UTF-8 emoji
 	int age;                  // Frames alive
+	int bounce_count;         // Number of bounces (max 3)
 	bool active;              // Is this particle alive?
 };
 

@@ -15,6 +15,8 @@ const double EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
 // Particle physics constants
 const double PARTICLE_GRAVITY = 500.0; // pixels per second squared
 const double PARTICLE_DELTA_TIME = 0.016; // 60 FPS
+const double BOUNCE_DAMPENING = 0.8; // Velocity multiplier on bounce
+const int MAX_BOUNCES = 3; // Number of bounces before particle dies
 
 // Forward declarations
 static void update_particle_system(struct particle_system *system, int screen_width, int screen_height);
@@ -246,9 +248,41 @@ static void update_particle_physics(struct emoji_particle *particle, int screen_
 	// Increment age
 	particle->age++;
 
-	// Check if off-screen (with margin)
-	if (particle->x < -100 || particle->x > screen_width + 100 ||
-	    particle->y < -100 || particle->y > screen_height + 100) {
+	// Check for wall collisions and bounce
+	bool bounced = false;
+
+	// Left wall collision
+	if (particle->x < 0) {
+		particle->x = 0;
+		particle->vx = -particle->vx * BOUNCE_DAMPENING;
+		bounced = true;
+	}
+
+	// Right wall collision
+	if (particle->x > screen_width) {
+		particle->x = screen_width;
+		particle->vx = -particle->vx * BOUNCE_DAMPENING;
+		bounced = true;
+	}
+
+	// Bottom wall collision
+	if (particle->y > screen_height) {
+		particle->y = screen_height;
+		particle->vy = -particle->vy * BOUNCE_DAMPENING;
+		bounced = true;
+	}
+
+	// Increment bounce counter
+	if (bounced) {
+		particle->bounce_count++;
+		// Deactivate after max bounces
+		if (particle->bounce_count >= MAX_BOUNCES) {
+			particle->active = false;
+		}
+	}
+
+	// Check if off-screen at top (particles flying upward off screen)
+	if (particle->y < -100) {
 		particle->active = false;
 	}
 }
@@ -275,6 +309,7 @@ static void spawn_particles_for_frame(struct particle_system *system) {
 					system->particles[j].rotation_speed = def->rotation_speed;
 					strcpy(system->particles[j].emoji, def->emoji);
 					system->particles[j].age = 0;
+					system->particles[j].bounce_count = 0;
 					system->particles[j].active = true;
 					system->active_count++;
 					break;
