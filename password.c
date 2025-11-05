@@ -11,29 +11,27 @@
 #include "seat.h"
 #include "swaylock.h"
 #include "unicode.h"
+#include "celebration_strategies.h"
 
 // Forward declarations
 static void cancel_animation(struct swaylock_state *state);
 static void schedule_animation(struct swaylock_state *state);
 
-// Test celebration strategy: 5 cherries from top-left, diagonal with 5-frame delays
-static struct particle_spawn_def test_strategy_defs[] = {
-	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 0},   // Frame 0
-	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 5},   // Frame 5
-	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 10},  // Frame 10
-	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 15},  // Frame 15
-	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 20},  // Frame 20
-};
+// Active strategy instance
+static struct celebration_strategy current_strategy = {0};
 
-static struct celebration_strategy test_strategy = {
-	.spawn_defs = test_strategy_defs,
-	.particle_count = 5,
-	.total_frames = 180,  // 3 seconds at 60fps (enough time for particles to fall off)
-};
+static void start_celebration(struct swaylock_state *state, int screen_width, int screen_height) {
+	// Choose strategy - CHANGE THIS TO TRY DIFFERENT STRATEGIES!
+	// Options:
+	//   init_jackpot_burst_strategy     - 40 emojis explode from center
+	//   init_corner_chaos_strategy      - Emojis from all 4 corners
+	//   init_fountain_strategy           - Continuous upward stream
+	//   init_diagonal_test_strategy      - Simple diagonal (original)
 
-static void start_celebration(struct swaylock_state *state) {
+	init_jackpot_burst_strategy(&current_strategy, screen_width, screen_height);
+
 	// Reset particle system
-	state->celebration_particles.strategy = &test_strategy;
+	state->celebration_particles.strategy = &current_strategy;
 	state->celebration_particles.current_frame = 0;
 	state->celebration_particles.active = true;
 	state->celebration_particles.active_count = 0;
@@ -316,7 +314,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 	case XKB_KEY_space:
 		// TEST TRIGGER: Spacebar triggers celebration animation
 		if (state->xkb.control) {
-			start_celebration(state);
+			start_celebration(state, 1920, 1080);
 			damage_state(state);
 			break;
 		}
