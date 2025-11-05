@@ -237,7 +237,7 @@ void set_cross_emojis(struct swaylock_state *state) {
 	// Set all 3 slots to crosses
 	for (int i = 0; i < 3; i++) {
 		strcpy(state->slot_emojis[i], cross);
-		state->emoji_y_positions[i] = 0.0; // Will be set properly during render
+		// state->emoji_y_positions[i] = 0.0; // Will be set properly during render
 	}
 
 	state->has_emojis = true;

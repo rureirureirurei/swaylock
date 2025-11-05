@@ -9,14 +9,14 @@
 
 #define M_PI 3.14159265358979323846
 const float TYPE_INDICATOR_RANGE = M_PI / 3.0f;
-const double EMOJI_DROP_SPEED = 800.0; // pixels per second
-const double EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
+const float EMOJI_DROP_SPEED = 1800.0; // pixels per second
+const float EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
 
 // Particle physics constants
-const double PARTICLE_GRAVITY = 500.0; // pixels per second squared
-const double PARTICLE_DELTA_TIME = 0.016; // 60 FPS
-const double BOUNCE_DAMPENING = 0.8; // Velocity multiplier on bounce
-const int MAX_BOUNCES = 3; // Number of bounces before particle dies
+const float PARTICLE_GRAVITY = 500.0; // pixels per second squared
+const float PARTICLE_DELTA_TIME = 0.016; // 60 FPS
+const float BOUNCE_DAMPENING = 1; // Velocity multiplier on bounce
+const int MAX_BOUNCES = 1; // Number of bounces before particle dies
 
 // Forward declarations
 static void update_particle_system(struct particle_system *system, int screen_width, int screen_height);
@@ -123,14 +123,14 @@ void render(struct swaylock_surface *surface) {
 	}
 }
 
-static void update_emoji_animation(struct swaylock_state *state, double target_y, int screen_height) {
+static void update_emoji_animation(struct swaylock_state *state, float target_y, int screen_height) {
 	if (!state->emoji_animating && !state->has_old_emojis) {
 		return;
 	}
 
 	// Use fixed timestep (assuming ~60 FPS = 16.67ms)
-	double delta_time = 0.016;
-	double movement = EMOJI_DROP_SPEED * delta_time;
+	float delta_time = 0.016;
+	float movement = EMOJI_DROP_SPEED * delta_time;
 	bool all_settled = true;
 	bool old_still_visible = false;
 
@@ -139,7 +139,7 @@ static void update_emoji_animation(struct swaylock_state *state, double target_y
 	// Update new emojis (dropping from top to center)
 	if (state->emoji_animating) {
 		for (int i = 0; i < 3; i++) {
-			double distance = state->emoji_target_y - state->emoji_y_positions[i];
+			float distance = state->emoji_target_y - state->emoji_y_positions[i];
 
 			if (fabs(distance) > EMOJI_SETTLE_THRESHOLD) {
 				// Move toward target
@@ -412,7 +412,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		if (layout_text) {
 			cairo_text_extents_t extents;
 			cairo_font_extents_t fe;
-			double box_padding = 4.0 * surface->scale;
+			float box_padding = 4.0 * surface->scale;
 			cairo_text_extents(state->test_cairo, layout_text, &extents);
 			cairo_font_extents(state->test_cairo, &fe);
 			buffer_height += fe.height + 2 * box_padding;
@@ -514,7 +514,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		if (text) {
 			cairo_text_extents_t extents;
 			cairo_font_extents_t fe;
-			double x, y;
+			float x, y;
 			cairo_text_extents(cairo, text, &extents);
 			cairo_font_extents(cairo, &fe);
 			x = (buffer_width / 2) -
@@ -531,7 +531,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		// Typing indicator: Highlight random part on keypress
 		if (state->input_state == INPUT_STATE_LETTER ||
 				state->input_state == INPUT_STATE_BACKSPACE) {
-			double highlight_start = state->highlight_start * (M_PI / 1024.0);
+			float highlight_start = state->highlight_start * (M_PI / 1024.0);
 			cairo_arc(cairo, buffer_width / 2, buffer_diameter / 2,
 					arc_radius, highlight_start,
 					highlight_start + TYPE_INDICATOR_RANGE);
@@ -551,8 +551,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 			cairo_stroke(cairo);
 
 			// Draw borders
-			double inner_radius = buffer_diameter / 2.0 - arc_thickness * 1.5;
-			double outer_radius = buffer_diameter / 2.0 - arc_thickness / 2.0;
+			float inner_radius = buffer_diameter / 2.0 - arc_thickness * 1.5;
+			float outer_radius = buffer_diameter / 2.0 - arc_thickness / 2.0;
 
 			cairo_set_line_width(cairo, 2.0 * surface->scale);
 			cairo_set_source_u32(cairo, state->args.colors.separator);
@@ -591,8 +591,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 		if (layout_text) {
 			cairo_text_extents_t extents;
 			cairo_font_extents_t fe;
-			double x, y;
-			double box_padding = 4.0 * surface->scale;
+			float x, y;
+			float box_padding = 4.0 * surface->scale;
 			cairo_text_extents(cairo, layout_text, &extents);
 			cairo_font_extents(cairo, &fe);
 			// upper left coordinates for box
@@ -654,20 +654,21 @@ static bool render_frame(struct swaylock_surface *surface) {
 
 		// Calculate target y position for animation
 		// Use screen height, not buffer_height (which changes during particle animation)
-		double target_y;
+		float target_y;
 		if (draw_indicator) {
 			target_y = buffer_diameter + fe.height;
 		} else {
 			// Use actual screen height for consistent positioning
-			double screen_center_y = (surface->height * surface->scale) / 2;
-			target_y = screen_center_y + (fe.height / 2 - fe.descent);
+			// float screen_center_y = (surface->height * surface->scale) / 2;
+			// target_y = screen_center_y + (fe.height / 2 - fe.descent);
+			target_y = (buffer_height / 2) + (fe.height / 2 - fe.descent);
 		}
 
 		// Update animation
 		update_emoji_animation(state, target_y, buffer_height);
 
-		double emoji_spacing = emoji_size * 1.5;
-		double start_x = (buffer_width / 2) - emoji_spacing;
+		float emoji_spacing = emoji_size * 1.5;
+		float start_x = (buffer_width / 2) - emoji_spacing;
 
 		// Draw old emojis falling off screen (if any)
 		if (state->has_old_emojis) {
@@ -675,8 +676,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 				cairo_text_extents_t extents;
 				cairo_text_extents(cairo, state->old_slot_emojis[i], &extents);
 
-				double x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
-				double y = state->old_emoji_y_positions[i];
+				float x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
+				float y = state->old_emoji_y_positions[i];
 
 				// Only draw if still visible
 				if (y < buffer_height + 100) {
@@ -692,8 +693,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 			cairo_text_extents_t extents;
 			cairo_text_extents(cairo, state->slot_emojis[i], &extents);
 
-			double x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
-			double y = state->emoji_y_positions[i];
+			float x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
+			float y = state->emoji_y_positions[i];
 
 			cairo_move_to(cairo, x, y);
 			set_color_for_state(cairo, state, &state->args.colors.text);
@@ -716,7 +717,7 @@ static bool render_frame(struct swaylock_surface *surface) {
 		cairo_set_font_size(cairo, 30);
 
 		// Fixed offset for emoji centering (avoids expensive text_extents per particle)
-		const double emoji_offset = 15.0;
+		const float emoji_offset = 15.0;
 
 		// Render all active particles
 		for (int i = 0; i < MAX_PARTICLES; i++) {
