@@ -229,6 +229,12 @@ static bool render_frame(struct swaylock_surface *surface) {
 			}
 		}
 		if (emoji_display) {
+			// Use emoji font for size calculation too
+			cairo_select_font_face(state->test_cairo, "Noto Color Emoji",
+				CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			int emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : arc_radius;
+			cairo_set_font_size(state->test_cairo, emoji_size);
+
 			cairo_text_extents_t extents;
 			cairo_font_extents_t fe;
 			cairo_text_extents(state->test_cairo, emoji_display, &extents);
@@ -416,7 +422,35 @@ static bool render_frame(struct swaylock_surface *surface) {
 
 	// Draw slot machine emojis (independent of indicator)
 	if (emoji_display) {
-		configure_font_drawing(cairo, state, surface->subpixel, arc_radius);
+		// Configure font for emojis - try common emoji fonts
+		cairo_font_options_t *fo = cairo_font_options_create();
+		cairo_font_options_set_hint_style(fo, CAIRO_HINT_STYLE_FULL);
+		cairo_font_options_set_antialias(fo, CAIRO_ANTIALIAS_SUBPIXEL);
+		cairo_font_options_set_subpixel_order(fo, to_cairo_subpixel_order(surface->subpixel));
+		cairo_set_font_options(cairo, fo);
+		cairo_font_options_destroy(fo);
+
+		// Try multiple emoji fonts until one works
+		const char *emoji_fonts[] = {
+			"Noto Color Emoji",
+			"Apple Color Emoji",
+			"Segoe UI Emoji",
+			"Symbola",
+			"emoji",
+			NULL
+		};
+
+		bool font_set = false;
+		for (int i = 0; emoji_fonts[i] != NULL && !font_set; i++) {
+			cairo_select_font_face(cairo, emoji_fonts[i],
+				CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			font_set = true; // Cairo doesn't fail, just use first available
+		}
+
+		// Make emojis bigger - 3x the normal text size
+		int emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : arc_radius;
+		cairo_set_font_size(cairo, emoji_size);
+
 		cairo_text_extents_t extents;
 		cairo_font_extents_t fe;
 		double x, y;
