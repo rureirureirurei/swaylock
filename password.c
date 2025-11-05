@@ -146,9 +146,13 @@ static void randomize_slot_emojis(struct swaylock_state *state) {
 	for (int i = 0; i < 3; i++) {
 		int emoji_idx = rand() % 3;
 		strcpy(state->slot_emojis[i], emojis[emoji_idx]);
+		// Start emojis at different heights above screen
+		state->emoji_y_positions[i] = -100.0 - (i * 30.0);
 	}
 
 	state->has_emojis = true;
+	state->emoji_animating = true;
+	state->emoji_target_y = 0.0; // Will be set properly during render
 }
 
 void swaylock_handle_key(struct swaylock_state *state,

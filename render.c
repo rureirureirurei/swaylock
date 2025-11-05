@@ -9,6 +9,8 @@
 
 #define M_PI 3.14159265358979323846
 const float TYPE_INDICATOR_RANGE = M_PI / 3.0f;
+const double EMOJI_DROP_SPEED = 800.0; // pixels per second
+const double EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
 
 static void set_color_for_state(cairo_t *cairo, struct swaylock_state *state,
 		struct swaylock_colorset *colorset) {
@@ -108,6 +110,38 @@ void render(struct swaylock_surface *surface) {
 
 	if (need_destroy) {
 		destroy_buffer(&buffer);
+	}
+}
+
+static void update_emoji_animation(struct swaylock_state *state, double target_y) {
+	if (!state->emoji_animating) {
+		return;
+	}
+
+	// Use fixed timestep (assuming ~60 FPS = 16.67ms)
+	double delta_time = 0.016;
+	double movement = EMOJI_DROP_SPEED * delta_time;
+	bool all_settled = true;
+
+	state->emoji_target_y = target_y;
+
+	for (int i = 0; i < 3; i++) {
+		double distance = state->emoji_target_y - state->emoji_y_positions[i];
+
+		if (fabs(distance) > EMOJI_SETTLE_THRESHOLD) {
+			// Move toward target with easing
+			state->emoji_y_positions[i] += movement;
+			if (state->emoji_y_positions[i] > state->emoji_target_y) {
+				state->emoji_y_positions[i] = state->emoji_target_y;
+			}
+			all_settled = false;
+		} else {
+			state->emoji_y_positions[i] = state->emoji_target_y;
+		}
+	}
+
+	if (all_settled) {
+		state->emoji_animating = false;
 	}
 }
 
@@ -420,8 +454,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 		}
 	}
 
-	// Draw slot machine emojis (independent of indicator)
-	if (emoji_display) {
+	// Draw slot machine emojis with animation
+	if (state->has_emojis) {
 		// Configure font for emojis - try common emoji fonts
 		cairo_font_options_t *fo = cairo_font_options_create();
 		cairo_font_options_set_hint_style(fo, CAIRO_HINT_STYLE_FULL);
@@ -440,41 +474,51 @@ static bool render_frame(struct swaylock_surface *surface) {
 			NULL
 		};
 
-		bool font_set = false;
-		for (int i = 0; emoji_fonts[i] != NULL && !font_set; i++) {
+		for (int i = 0; emoji_fonts[i] != NULL; i++) {
 			cairo_select_font_face(cairo, emoji_fonts[i],
 				CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-			font_set = true; // Cairo doesn't fail, just use first available
+			break; // Use first font
 		}
 
 		// Make emojis bigger - 3x the normal text size
 		uint32_t emoji_size = state->args.font_size > 0 ? state->args.font_size * 3 : (uint32_t)arc_radius;
 		cairo_set_font_size(cairo, emoji_size);
 
-		cairo_text_extents_t extents;
 		cairo_font_extents_t fe;
-		double x, y;
-
-		cairo_text_extents(cairo, emoji_display, &extents);
 		cairo_font_extents(cairo, &fe);
 
-		// Center the emojis
-		x = (buffer_width / 2) - (extents.width / 2 + extents.x_bearing);
-
+		// Calculate target y position for animation
+		double target_y;
 		if (draw_indicator) {
-			// If indicator is shown, place below it
-			y = buffer_diameter + fe.height;
+			target_y = buffer_diameter + fe.height;
 		} else {
-			// If no indicator, center vertically
-			y = (buffer_height / 2) + (fe.height / 2 - fe.descent);
+			target_y = (buffer_height / 2) + (fe.height / 2 - fe.descent);
 		}
 
-		cairo_move_to(cairo, x, y);
-		set_color_for_state(cairo, state, &state->args.colors.text);
-		cairo_show_text(cairo, emoji_display);
+		// Update animation
+		update_emoji_animation(state, target_y);
+
+		// Draw each emoji at its animated position
+		double emoji_spacing = emoji_size * 1.5;
+		double start_x = (buffer_width / 2) - emoji_spacing;
+
+		for (int i = 0; i < 3; i++) {
+			cairo_text_extents_t extents;
+			cairo_text_extents(cairo, state->slot_emojis[i], &extents);
+
+			double x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
+			double y = state->emoji_y_positions[i];
+
+			cairo_move_to(cairo, x, y);
+			set_color_for_state(cairo, state, &state->args.colors.text);
+			cairo_show_text(cairo, state->slot_emojis[i]);
+		}
+
 		cairo_close_path(cairo);
 		cairo_new_sub_path(cairo);
+	}
 
+	if (emoji_display) {
 		free(emoji_display);
 	}
 
@@ -485,6 +529,11 @@ static bool render_frame(struct swaylock_surface *surface) {
 	wl_surface_attach(surface->child, buffer->buffer, 0, 0);
 	wl_surface_damage_buffer(surface->child, 0, 0, INT32_MAX, INT32_MAX);
 	wl_surface_commit(surface->child);
+
+	// Continue animating if emojis are still moving
+	if (state->emoji_animating) {
+		damage_state(state);
+	}
 
 	return true;
 }
