@@ -16,6 +16,9 @@ const double EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
 const double PARTICLE_GRAVITY = 500.0; // pixels per second squared
 const double PARTICLE_DELTA_TIME = 0.016; // 60 FPS
 
+// Forward declarations
+static void update_particle_system(struct particle_system *system, int screen_width, int screen_height);
+
 static void set_color_for_state(cairo_t *cairo, struct swaylock_state *state,
 		struct swaylock_colorset *colorset) {
 	if (state->input_state == INPUT_STATE_CLEAR) {
