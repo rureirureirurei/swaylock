@@ -14,6 +14,7 @@
 
 // Forward declarations
 static void cancel_animation(struct swaylock_state *state);
+static void schedule_animation(struct swaylock_state *state);
 
 // Test celebration strategy: 5 cherries from top-left, diagonal with 5-frame delays
 static struct particle_spawn_def test_strategy_defs[] = {
@@ -319,7 +320,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 			damage_state(state);
 			break;
 		}
-		// fallthrough to default to add space normally
+		/* fallthrough */
 	default:
 		if (codepoint) {
 			append_ch(&state->password, codepoint);
