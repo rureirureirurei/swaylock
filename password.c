@@ -200,10 +200,10 @@ static void update_highlight(struct swaylock_state *state) {
 }
 
 static void randomize_slot_emojis(struct swaylock_state *state) {
-	// Emoji set: Cherry 🍒, Peach 🍑, Star ⭐
+	// Emoji set: Cherry 🍒, Diamond 💎, Star ⭐
 	const char *emojis[3] = {
 		"\xF0\x9F\x8D\x92", // 🍒 Cherry
-		"\xF0\x9F\x8D\x91", // 🍑 Peach
+		"\xF0\x9F\x92\x8E", // 💎 Diamond
 		"\xE2\xAD\x90"      // ⭐ Star
 	};
 
