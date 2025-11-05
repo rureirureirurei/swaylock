@@ -707,10 +707,13 @@ static bool render_frame(struct swaylock_surface *surface) {
 
 	// Render particles if active
 	if (particles_active) {
-		// Configure font for particles
+		// Configure font for particles (smaller = faster)
 		cairo_select_font_face(cairo, "Noto Color Emoji",
 			CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-		cairo_set_font_size(cairo, 60);
+		cairo_set_font_size(cairo, 30);
+
+		// Fixed offset for emoji centering (avoids expensive text_extents per particle)
+		const double emoji_offset = 15.0;
 
 		// Render all active particles
 		for (int i = 0; i < MAX_PARTICLES; i++) {
@@ -721,9 +724,8 @@ static bool render_frame(struct swaylock_surface *surface) {
 				cairo_translate(cairo, p->x, p->y);
 				cairo_rotate(cairo, p->rotation);
 
-				cairo_text_extents_t extents;
-				cairo_text_extents(cairo, p->emoji, &extents);
-				cairo_move_to(cairo, -extents.width / 2, extents.height / 2);
+				// Use fixed offset instead of cairo_text_extents (major speedup)
+				cairo_move_to(cairo, -emoji_offset, emoji_offset);
 
 				cairo_set_source_u32(cairo, state->args.colors.text.input);
 				cairo_show_text(cairo, p->emoji);

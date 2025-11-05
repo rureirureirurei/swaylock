@@ -25,7 +25,7 @@ void init_jackpot_burst_strategy(struct celebration_strategy *strategy,
                                    int screen_width, int screen_height) {
 	cleanup_strategy(strategy);
 
-	int particle_count = 40;
+	int particle_count = 20;  // Reduced from 40 for better performance
 	allocated_defs = malloc(sizeof(struct particle_spawn_def) * particle_count);
 
 	double center_x = screen_width / 2.0;
@@ -75,7 +75,7 @@ void init_corner_chaos_strategy(struct celebration_strategy *strategy,
                                   int screen_width, int screen_height) {
 	cleanup_strategy(strategy);
 
-	int particles_per_corner = 8;
+	int particles_per_corner = 5;  // Reduced from 8 for better performance
 	int particle_count = particles_per_corner * 4;
 	allocated_defs = malloc(sizeof(struct particle_spawn_def) * particle_count);
 
@@ -124,7 +124,7 @@ void init_fountain_strategy(struct celebration_strategy *strategy,
                              int screen_width, int screen_height) {
 	cleanup_strategy(strategy);
 
-	int particle_count = 60;
+	int particle_count = 30;  // Reduced from 60 for better performance
 	allocated_defs = malloc(sizeof(struct particle_spawn_def) * particle_count);
 
 	double spawn_x = screen_width / 2.0;
