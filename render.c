@@ -77,9 +77,6 @@ void render(struct swaylock_surface *surface) {
 	bool need_destroy = false;
 	struct pool_buffer buffer;
 
-	bool particles_active = state->celebration_particles.active ||
-	                        state->celebration_particles.active_count > 0;
-
 	// Only re-render background when size changes (not for particles!)
 	if (buffer_width != surface->last_buffer_width ||
 			buffer_height != surface->last_buffer_height) {
