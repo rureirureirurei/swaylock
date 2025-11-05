@@ -15,6 +15,37 @@
 // Forward declarations
 static void cancel_animation(struct swaylock_state *state);
 
+// Test celebration strategy: 5 cherries from top-left, diagonal with 5-frame delays
+static struct particle_spawn_def test_strategy_defs[] = {
+	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 0},   // Frame 0
+	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 5},   // Frame 5
+	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 10},  // Frame 10
+	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 15},  // Frame 15
+	{50.0, 50.0, 400.0, 200.0, 3.0, "\xF0\x9F\x8D\x92", 20},  // Frame 20
+};
+
+static struct celebration_strategy test_strategy = {
+	.spawn_defs = test_strategy_defs,
+	.particle_count = 5,
+	.total_frames = 180,  // 3 seconds at 60fps (enough time for particles to fall off)
+};
+
+static void start_celebration(struct swaylock_state *state) {
+	// Reset particle system
+	state->celebration_particles.strategy = &test_strategy;
+	state->celebration_particles.current_frame = 0;
+	state->celebration_particles.active = true;
+	state->celebration_particles.active_count = 0;
+
+	// Clear all particles
+	for (int i = 0; i < MAX_PARTICLES; i++) {
+		state->celebration_particles.particles[i].active = false;
+	}
+
+	// Start animation timer
+	schedule_animation(state);
+}
+
 void clear_buffer(char *buf, size_t size) {
 	// Use volatile keyword so so compiler can't optimize this out.
 	volatile char *buffer = buf;
@@ -118,7 +149,8 @@ static void animation_tick(void *data) {
 	struct swaylock_state *state = data;
 	state->animation_timer = NULL;
 
-	if (state->emoji_animating || state->has_old_emojis) {
+	if (state->emoji_animating || state->has_old_emojis ||
+	    state->celebration_particles.active || state->celebration_particles.active_count > 0) {
 		damage_state(state);
 		// Schedule next frame (16ms = ~60 FPS)
 		state->animation_timer = loop_add_timer(
@@ -280,6 +312,14 @@ void swaylock_handle_key(struct swaylock_state *state,
 			break;
 		}
 		// fallthrough
+	case XKB_KEY_space:
+		// TEST TRIGGER: Spacebar triggers celebration animation
+		if (state->xkb.control) {
+			start_celebration(state);
+			damage_state(state);
+			break;
+		}
+		// fallthrough to default to add space normally
 	default:
 		if (codepoint) {
 			append_ch(&state->password, codepoint);

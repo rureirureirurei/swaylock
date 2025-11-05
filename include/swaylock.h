@@ -8,6 +8,45 @@
 #include "pool-buffer.h"
 #include "seat.h"
 
+// Particle system for celebration animations
+#define MAX_PARTICLES 100
+
+// Single emoji particle
+struct emoji_particle {
+	double x, y;              // Position
+	double vx, vy;            // Velocity (pixels/sec)
+	double rotation;          // Current rotation angle (radians)
+	double rotation_speed;    // Rotation rate (radians/sec)
+	char emoji[5];            // UTF-8 emoji
+	int age;                  // Frames alive
+	bool active;              // Is this particle alive?
+};
+
+// Particle spawn definition (what the strategy defines)
+struct particle_spawn_def {
+	double spawn_x, spawn_y;      // Spawn position (can be relative, resolved at runtime)
+	double velocity_x, velocity_y; // Initial velocity
+	double rotation_speed;         // How fast to spin
+	char emoji[5];                 // Which emoji
+	int spawn_frame;               // When to spawn (frame number)
+};
+
+// Strategy configuration
+struct celebration_strategy {
+	struct particle_spawn_def *spawn_defs; // Array of particle definitions
+	int particle_count;                     // How many particles total
+	int total_frames;                       // Duration of spawn sequence
+};
+
+// Active particle system state
+struct particle_system {
+	struct emoji_particle particles[MAX_PARTICLES];  // Particle pool
+	int active_count;                                // How many are alive
+	struct celebration_strategy *strategy;           // Current strategy
+	int current_frame;                               // Animation frame counter
+	bool active;                                     // Is celebration playing?
+};
+
 // Indicator state: status of authentication attempt
 enum auth_state {
 	AUTH_STATE_IDLE, // nothing happening
@@ -105,6 +144,7 @@ struct swaylock_state {
 	char old_slot_emojis[3][5]; // previous emojis falling off screen
 	double old_emoji_y_positions[3]; // y positions of old emojis
 	bool has_old_emojis; // whether old emojis are falling
+	struct particle_system celebration_particles; // Celebration particle system
 	int failed_attempts;
 	bool run_display, locked;
 	struct ext_session_lock_manager_v1 *ext_session_lock_manager_v1;

@@ -12,6 +12,10 @@ const float TYPE_INDICATOR_RANGE = M_PI / 3.0f;
 const double EMOJI_DROP_SPEED = 800.0; // pixels per second
 const double EMOJI_SETTLE_THRESHOLD = 2.0; // pixels
 
+// Particle physics constants
+const double PARTICLE_GRAVITY = 500.0; // pixels per second squared
+const double PARTICLE_DELTA_TIME = 0.016; // 60 FPS
+
 static void set_color_for_state(cairo_t *cairo, struct swaylock_state *state,
 		struct swaylock_colorset *colorset) {
 	if (state->input_state == INPUT_STATE_CLEAR) {
@@ -161,6 +165,87 @@ static void update_emoji_animation(struct swaylock_state *state, double target_y
 		if (!old_still_visible) {
 			state->has_old_emojis = false;
 		}
+	}
+}
+
+// Particle physics engine
+static void update_particle_physics(struct emoji_particle *particle, int screen_width, int screen_height) {
+	// Apply velocity to position
+	particle->x += particle->vx * PARTICLE_DELTA_TIME;
+	particle->y += particle->vy * PARTICLE_DELTA_TIME;
+
+	// Apply gravity to velocity
+	particle->vy += PARTICLE_GRAVITY * PARTICLE_DELTA_TIME;
+
+	// Update rotation
+	particle->rotation += particle->rotation_speed * PARTICLE_DELTA_TIME;
+
+	// Increment age
+	particle->age++;
+
+	// Check if off-screen (with margin)
+	if (particle->x < -100 || particle->x > screen_width + 100 ||
+	    particle->y < -100 || particle->y > screen_height + 100) {
+		particle->active = false;
+	}
+}
+
+static void spawn_particles_for_frame(struct particle_system *system) {
+	if (!system->strategy) {
+		return;
+	}
+
+	// Check if any particles should spawn this frame
+	for (int i = 0; i < system->strategy->particle_count; i++) {
+		struct particle_spawn_def *def = &system->strategy->spawn_defs[i];
+
+		if (def->spawn_frame == system->current_frame) {
+			// Find an inactive particle slot
+			for (int j = 0; j < MAX_PARTICLES; j++) {
+				if (!system->particles[j].active) {
+					// Spawn particle
+					system->particles[j].x = def->spawn_x;
+					system->particles[j].y = def->spawn_y;
+					system->particles[j].vx = def->velocity_x;
+					system->particles[j].vy = def->velocity_y;
+					system->particles[j].rotation = 0.0;
+					system->particles[j].rotation_speed = def->rotation_speed;
+					strcpy(system->particles[j].emoji, def->emoji);
+					system->particles[j].age = 0;
+					system->particles[j].active = true;
+					system->active_count++;
+					break;
+				}
+			}
+		}
+	}
+}
+
+static void update_particle_system(struct particle_system *system, int screen_width, int screen_height) {
+	if (!system->active) {
+		return;
+	}
+
+	// Spawn particles for current frame
+	spawn_particles_for_frame(system);
+
+	// Update all active particles
+	system->active_count = 0;
+	for (int i = 0; i < MAX_PARTICLES; i++) {
+		if (system->particles[i].active) {
+			update_particle_physics(&system->particles[i], screen_width, screen_height);
+			if (system->particles[i].active) {
+				system->active_count++;
+			}
+		}
+	}
+
+	// Advance frame counter
+	system->current_frame++;
+
+	// Check if animation is complete
+	if (system->current_frame > system->strategy->total_frames && system->active_count == 0) {
+		system->active = false;
 	}
 }
 
@@ -557,6 +642,58 @@ static bool render_frame(struct swaylock_surface *surface) {
 
 	if (emoji_display) {
 		free(emoji_display);
+	}
+
+	// Update and render celebration particles
+	if (state->celebration_particles.active || state->celebration_particles.active_count > 0) {
+		// Update particle physics
+		update_particle_system(&state->celebration_particles, buffer_width, buffer_height);
+
+		// Configure font for particles
+		cairo_font_options_t *fo = cairo_font_options_create();
+		cairo_font_options_set_hint_style(fo, CAIRO_HINT_STYLE_FULL);
+		cairo_font_options_set_antialias(fo, CAIRO_ANTIALIAS_SUBPIXEL);
+		cairo_font_options_set_subpixel_order(fo, to_cairo_subpixel_order(surface->subpixel));
+		cairo_set_font_options(cairo, fo);
+		cairo_font_options_destroy(fo);
+
+		const char *emoji_fonts[] = {
+			"Noto Color Emoji",
+			"Apple Color Emoji",
+			"Segoe UI Emoji",
+			"Symbola",
+			"emoji",
+			NULL
+		};
+
+		for (int i = 0; emoji_fonts[i] != NULL; i++) {
+			cairo_select_font_face(cairo, emoji_fonts[i],
+				CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+			break;
+		}
+
+		uint32_t particle_size = state->args.font_size > 0 ? state->args.font_size * 2 : (uint32_t)arc_radius;
+		cairo_set_font_size(cairo, particle_size);
+
+		// Render all active particles
+		for (int i = 0; i < MAX_PARTICLES; i++) {
+			if (state->celebration_particles.particles[i].active) {
+				struct emoji_particle *p = &state->celebration_particles.particles[i];
+
+				cairo_save(cairo);
+				cairo_translate(cairo, p->x, p->y);
+				cairo_rotate(cairo, p->rotation);
+
+				cairo_text_extents_t extents;
+				cairo_text_extents(cairo, p->emoji, &extents);
+				cairo_move_to(cairo, -extents.width / 2, extents.height / 2);
+
+				set_color_for_state(cairo, state, &state->args.colors.text);
+				cairo_show_text(cairo, p->emoji);
+
+				cairo_restore(cairo);
+			}
+		}
 	}
 
 	// Send Wayland requests
