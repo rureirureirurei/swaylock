@@ -107,6 +107,33 @@ static void cancel_password_clear(struct swaylock_state *state) {
 	}
 }
 
+static void animation_tick(void *data) {
+	struct swaylock_state *state = data;
+	state->animation_timer = NULL;
+
+	if (state->emoji_animating) {
+		damage_state(state);
+		// Schedule next frame (16ms = ~60 FPS)
+		state->animation_timer = loop_add_timer(
+			state->eventloop, 16, animation_tick, state);
+	}
+}
+
+static void schedule_animation(struct swaylock_state *state) {
+	if (state->animation_timer) {
+		loop_remove_timer(state->eventloop, state->animation_timer);
+	}
+	state->animation_timer = loop_add_timer(
+		state->eventloop, 16, animation_tick, state);
+}
+
+static void cancel_animation(struct swaylock_state *state) {
+	if (state->animation_timer) {
+		loop_remove_timer(state->eventloop, state->animation_timer);
+		state->animation_timer = NULL;
+	}
+}
+
 static void submit_password(struct swaylock_state *state) {
 	if (state->args.ignore_empty && state->password.len == 0) {
 		return;
@@ -153,6 +180,7 @@ static void randomize_slot_emojis(struct swaylock_state *state) {
 	state->has_emojis = true;
 	state->emoji_animating = true;
 	state->emoji_target_y = 0.0; // Will be set properly during render
+	schedule_animation(state);
 }
 
 void swaylock_handle_key(struct swaylock_state *state,

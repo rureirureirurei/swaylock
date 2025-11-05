@@ -142,6 +142,7 @@ static void update_emoji_animation(struct swaylock_state *state, double target_y
 
 	if (all_settled) {
 		state->emoji_animating = false;
+		// Timer will stop itself on next tick when it checks emoji_animating
 	}
 }
 
@@ -529,11 +530,6 @@ static bool render_frame(struct swaylock_surface *surface) {
 	wl_surface_attach(surface->child, buffer->buffer, 0, 0);
 	wl_surface_damage_buffer(surface->child, 0, 0, INT32_MAX, INT32_MAX);
 	wl_surface_commit(surface->child);
-
-	// Continue animating if emojis are still moving
-	if (state->emoji_animating) {
-		damage_state(state);
-	}
 
 	return true;
 }
