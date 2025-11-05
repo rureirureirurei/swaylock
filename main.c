@@ -1047,6 +1047,7 @@ static void comm_in(int fd, short mask, void *data) {
 			state.run_display = false;
 		} else {
 			state.auth_state = AUTH_STATE_INVALID;
+			set_cross_emojis(&state);  // Show 3 crosses for wrong password
 			schedule_auth_idle(&state);
 			++state.failed_attempts;
 			damage_state(&state);
