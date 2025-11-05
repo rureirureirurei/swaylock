@@ -89,6 +89,9 @@ static void clear_password(void *data) {
 	state->input_state = INPUT_STATE_CLEAR;
 	schedule_input_idle(state);
 	clear_password_buffer(&state->password);
+	state->has_emojis = false;
+	state->emoji_animating = false;
+	cancel_animation(state);
 	damage_state(state);
 }
 
@@ -197,6 +200,9 @@ void swaylock_handle_key(struct swaylock_state *state,
 			clear_password_buffer(&state->password);
 			state->input_state = INPUT_STATE_CLEAR;
 			cancel_password_clear(state);
+			state->has_emojis = false;
+			state->emoji_animating = false;
+			cancel_animation(state);
 		} else {
 			if (backspace(&state->password) && state->password.len != 0) {
 				state->input_state = INPUT_STATE_BACKSPACE;
@@ -214,6 +220,9 @@ void swaylock_handle_key(struct swaylock_state *state,
 		clear_password_buffer(&state->password);
 		state->input_state = INPUT_STATE_CLEAR;
 		cancel_password_clear(state);
+		state->has_emojis = false;
+		state->emoji_animating = false;
+		cancel_animation(state);
 		schedule_input_idle(state);
 		damage_state(state);
 		break;
@@ -247,6 +256,9 @@ void swaylock_handle_key(struct swaylock_state *state,
 			clear_password_buffer(&state->password);
 			state->input_state = INPUT_STATE_CLEAR;
 			cancel_password_clear(state);
+			state->has_emojis = false;
+			state->emoji_animating = false;
+			cancel_animation(state);
 			schedule_input_idle(state);
 			damage_state(state);
 			break;
