@@ -96,6 +96,8 @@ struct swaylock_state {
 	enum auth_state auth_state; // state of the authentication attempt
 	enum input_state input_state; // state of the password buffer and key inputs
 	uint32_t highlight_start; // position of highlight; 2048 = 1 full turn
+	char slot_emojis[3][5]; // slot machine emojis (3 slots, UTF-8 encoded)
+	bool has_emojis; // whether emojis have been generated
 	int failed_attempts;
 	bool run_display, locked;
 	struct ext_session_lock_manager_v1 *ext_session_lock_manager_v1;
