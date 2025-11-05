@@ -77,13 +77,12 @@ void render(struct swaylock_surface *surface) {
 	bool need_destroy = false;
 	struct pool_buffer buffer;
 
-	// Re-render background if size changed OR particles are active
 	bool particles_active = state->celebration_particles.active ||
 	                        state->celebration_particles.active_count > 0;
 
+	// Only re-render background when size changes (not for particles!)
 	if (buffer_width != surface->last_buffer_width ||
-			buffer_height != surface->last_buffer_height ||
-			particles_active) {
+			buffer_height != surface->last_buffer_height) {
 		need_destroy = true;
 		if (!create_buffer(state->shm, &buffer, buffer_width, buffer_height,
 				WL_SHM_FORMAT_ARGB8888)) {
@@ -107,68 +106,13 @@ void render(struct swaylock_surface *surface) {
 		cairo_restore(cairo);
 		cairo_identity_matrix(cairo);
 
-		// Render particles on full-screen background
-		if (particles_active) {
-			// Update particle physics
-			update_particle_system(&state->celebration_particles, buffer_width, buffer_height);
-
-			// Configure font for particles
-			cairo_font_options_t *fo = cairo_font_options_create();
-			cairo_font_options_set_hint_style(fo, CAIRO_HINT_STYLE_FULL);
-			cairo_font_options_set_antialias(fo, CAIRO_ANTIALIAS_SUBPIXEL);
-			cairo_font_options_set_subpixel_order(fo, to_cairo_subpixel_order(surface->subpixel));
-			cairo_set_font_options(cairo, fo);
-			cairo_font_options_destroy(fo);
-
-			const char *emoji_fonts[] = {
-				"Noto Color Emoji",
-				"Apple Color Emoji",
-				"Segoe UI Emoji",
-				"Symbola",
-				"emoji",
-				NULL
-			};
-
-			for (int i = 0; emoji_fonts[i] != NULL; i++) {
-				cairo_select_font_face(cairo, emoji_fonts[i],
-					CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
-				break;
-			}
-
-			// Particle size based on screen size
-			uint32_t particle_size = 60;  // Fixed size for now
-			cairo_set_font_size(cairo, particle_size);
-
-			// Render all active particles
-			for (int i = 0; i < MAX_PARTICLES; i++) {
-				if (state->celebration_particles.particles[i].active) {
-					struct emoji_particle *p = &state->celebration_particles.particles[i];
-
-					cairo_save(cairo);
-					cairo_translate(cairo, p->x, p->y);
-					cairo_rotate(cairo, p->rotation);
-
-					cairo_text_extents_t extents;
-					cairo_text_extents(cairo, p->emoji, &extents);
-					cairo_move_to(cairo, -extents.width / 2, extents.height / 2);
-
-					cairo_set_source_u32(cairo, state->args.colors.text.input);
-					cairo_show_text(cairo, p->emoji);
-
-					cairo_restore(cairo);
-				}
-			}
-		}
-
 		wl_surface_set_buffer_scale(surface->surface, surface->scale);
 		wl_surface_attach(surface->surface, buffer.buffer, 0, 0);
 		wl_surface_damage_buffer(surface->surface, 0, 0, INT32_MAX, INT32_MAX);
 		need_destroy = true;
 
-		if (!particles_active) {
-			surface->last_buffer_width = buffer_width;
-			surface->last_buffer_height = buffer_height;
-		}
+		surface->last_buffer_width = buffer_width;
+		surface->last_buffer_height = buffer_height;
 	}
 
 	render_frame(surface);
@@ -435,12 +379,27 @@ static bool render_frame(struct swaylock_surface *surface) {
 		}
 	}
 
+	// Check if particles are active - if so, expand buffer to full screen
+	bool particles_active = state->celebration_particles.active ||
+	                        state->celebration_particles.active_count > 0;
+
 	// Compute the size of the buffer needed
 	int arc_radius = state->args.radius * surface->scale;
 	int arc_thickness = state->args.thickness * surface->scale;
 	int buffer_diameter = (arc_radius + arc_thickness) * 2;
-	int buffer_width = buffer_diameter;
-	int buffer_height = buffer_diameter;
+	int buffer_width, buffer_height;
+
+	if (particles_active) {
+		// Expand to full screen for particles
+		buffer_width = surface->width * surface->scale;
+		buffer_height = surface->height * surface->scale;
+		// Update particle physics
+		update_particle_system(&state->celebration_particles, buffer_width, buffer_height);
+	} else {
+		// Normal indicator size
+		buffer_width = buffer_diameter;
+		buffer_height = buffer_diameter;
+	}
 
 	if (text || layout_text || emoji_display) {
 		cairo_set_antialias(state->test_cairo, CAIRO_ANTIALIAS_BEST);
@@ -740,6 +699,34 @@ static bool render_frame(struct swaylock_surface *surface) {
 
 	if (emoji_display) {
 		free(emoji_display);
+	}
+
+	// Render particles if active
+	if (particles_active) {
+		// Configure font for particles
+		cairo_select_font_face(cairo, "Noto Color Emoji",
+			CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL);
+		cairo_set_font_size(cairo, 60);
+
+		// Render all active particles
+		for (int i = 0; i < MAX_PARTICLES; i++) {
+			if (state->celebration_particles.particles[i].active) {
+				struct emoji_particle *p = &state->celebration_particles.particles[i];
+
+				cairo_save(cairo);
+				cairo_translate(cairo, p->x, p->y);
+				cairo_rotate(cairo, p->rotation);
+
+				cairo_text_extents_t extents;
+				cairo_text_extents(cairo, p->emoji, &extents);
+				cairo_move_to(cairo, -extents.width / 2, extents.height / 2);
+
+				cairo_set_source_u32(cairo, state->args.colors.text.input);
+				cairo_show_text(cairo, p->emoji);
+
+				cairo_restore(cairo);
+			}
+		}
 	}
 
 	// Send Wayland requests
