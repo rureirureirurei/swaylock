@@ -230,6 +230,21 @@ static void randomize_slot_emojis(struct swaylock_state *state) {
 	schedule_animation(state);
 }
 
+void set_cross_emojis(struct swaylock_state *state) {
+	// Cross emoji: ❌
+	const char *cross = "\xE2\x9D\x8C";
+
+	// Set all 3 slots to crosses
+	for (int i = 0; i < 3; i++) {
+		strcpy(state->slot_emojis[i], cross);
+		state->emoji_y_positions[i] = 0.0; // Will be set properly during render
+	}
+
+	state->has_emojis = true;
+	state->emoji_animating = false;  // No animation for error state
+	state->has_old_emojis = false;   // No old emojis
+}
+
 void swaylock_handle_key(struct swaylock_state *state,
 		xkb_keysym_t keysym, uint32_t codepoint) {
 

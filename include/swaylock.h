@@ -184,6 +184,7 @@ struct swaylock_image {
 
 void swaylock_handle_key(struct swaylock_state *state,
 		xkb_keysym_t keysym, uint32_t codepoint);
+void set_cross_emojis(struct swaylock_state *state);
 
 void render(struct swaylock_surface *surface);
 void damage_state(struct swaylock_state *state);
