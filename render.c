@@ -447,21 +447,28 @@ static bool render_frame(struct swaylock_surface *surface) {
 	int subsurf_xpos;
 	int subsurf_ypos;
 
-	// Center the indicator unless overridden by the user
-	if (state->args.override_indicator_x_position) {
-		subsurf_xpos = state->args.indicator_x_position -
-			buffer_width / (2 * surface->scale) + 2 / surface->scale;
+	// Position subsurface
+	if (particles_active) {
+		// Full screen overlay - position at top-left
+		subsurf_xpos = 0;
+		subsurf_ypos = 0;
 	} else {
-		subsurf_xpos = surface->width / 2 -
-			buffer_width / (2 * surface->scale) + 2 / surface->scale;
-	}
+		// Center the indicator unless overridden by the user
+		if (state->args.override_indicator_x_position) {
+			subsurf_xpos = state->args.indicator_x_position -
+				buffer_width / (2 * surface->scale) + 2 / surface->scale;
+		} else {
+			subsurf_xpos = surface->width / 2 -
+				buffer_width / (2 * surface->scale) + 2 / surface->scale;
+		}
 
-	if (state->args.override_indicator_y_position) {
-		subsurf_ypos = state->args.indicator_y_position -
-			(state->args.radius + state->args.thickness);
-	} else {
-		subsurf_ypos = surface->height / 2 -
-			(state->args.radius + state->args.thickness);
+		if (state->args.override_indicator_y_position) {
+			subsurf_ypos = state->args.indicator_y_position -
+				(state->args.radius + state->args.thickness);
+		} else {
+			subsurf_ypos = surface->height / 2 -
+				(state->args.radius + state->args.thickness);
+		}
 	}
 
 	struct pool_buffer *buffer = get_next_buffer(state->shm,
