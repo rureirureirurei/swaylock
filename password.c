@@ -12,6 +12,9 @@
 #include "swaylock.h"
 #include "unicode.h"
 
+// Forward declarations
+static void cancel_animation(struct swaylock_state *state);
+
 void clear_buffer(char *buf, size_t size) {
 	// Use volatile keyword so so compiler can't optimize this out.
 	volatile char *buffer = buf;
