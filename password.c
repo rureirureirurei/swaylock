@@ -93,6 +93,7 @@ static void clear_password(void *data) {
 	schedule_input_idle(state);
 	clear_password_buffer(&state->password);
 	state->has_emojis = false;
+	state->has_old_emojis = false;
 	state->emoji_animating = false;
 	cancel_animation(state);
 	damage_state(state);
@@ -117,7 +118,7 @@ static void animation_tick(void *data) {
 	struct swaylock_state *state = data;
 	state->animation_timer = NULL;
 
-	if (state->emoji_animating) {
+	if (state->emoji_animating || state->has_old_emojis) {
 		damage_state(state);
 		// Schedule next frame (16ms = ~60 FPS)
 		state->animation_timer = loop_add_timer(
@@ -175,6 +176,15 @@ static void randomize_slot_emojis(struct swaylock_state *state) {
 		"\xE2\xAD\x90"      // ⭐ Star
 	};
 
+	// Save old emojis to fall off screen
+	if (state->has_emojis) {
+		for (int i = 0; i < 3; i++) {
+			strcpy(state->old_slot_emojis[i], state->slot_emojis[i]);
+			state->old_emoji_y_positions[i] = state->emoji_y_positions[i];
+		}
+		state->has_old_emojis = true;
+	}
+
 	// Randomize all 3 slots
 	for (int i = 0; i < 3; i++) {
 		int emoji_idx = rand() % 3;
@@ -204,6 +214,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 			state->input_state = INPUT_STATE_CLEAR;
 			cancel_password_clear(state);
 			state->has_emojis = false;
+			state->has_old_emojis = false;
 			state->emoji_animating = false;
 			cancel_animation(state);
 		} else {
@@ -224,6 +235,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 		state->input_state = INPUT_STATE_CLEAR;
 		cancel_password_clear(state);
 		state->has_emojis = false;
+		state->has_old_emojis = false;
 		state->emoji_animating = false;
 		cancel_animation(state);
 		schedule_input_idle(state);
@@ -260,6 +272,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 			state->input_state = INPUT_STATE_CLEAR;
 			cancel_password_clear(state);
 			state->has_emojis = false;
+			state->has_old_emojis = false;
 			state->emoji_animating = false;
 			cancel_animation(state);
 			schedule_input_idle(state);

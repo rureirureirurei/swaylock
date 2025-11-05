@@ -102,6 +102,9 @@ struct swaylock_state {
 	double emoji_y_positions[3]; // current y positions for animation
 	double emoji_target_y; // target y position (center)
 	bool emoji_animating; // whether emojis are currently animating
+	char old_slot_emojis[3][5]; // previous emojis falling off screen
+	double old_emoji_y_positions[3]; // y positions of old emojis
+	bool has_old_emojis; // whether old emojis are falling
 	int failed_attempts;
 	bool run_display, locked;
 	struct ext_session_lock_manager_v1 *ext_session_lock_manager_v1;

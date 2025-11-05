@@ -113,8 +113,8 @@ void render(struct swaylock_surface *surface) {
 	}
 }
 
-static void update_emoji_animation(struct swaylock_state *state, double target_y) {
-	if (!state->emoji_animating) {
+static void update_emoji_animation(struct swaylock_state *state, double target_y, int screen_height) {
+	if (!state->emoji_animating && !state->has_old_emojis) {
 		return;
 	}
 
@@ -122,27 +122,45 @@ static void update_emoji_animation(struct swaylock_state *state, double target_y
 	double delta_time = 0.016;
 	double movement = EMOJI_DROP_SPEED * delta_time;
 	bool all_settled = true;
+	bool old_still_visible = false;
 
 	state->emoji_target_y = target_y;
 
-	for (int i = 0; i < 3; i++) {
-		double distance = state->emoji_target_y - state->emoji_y_positions[i];
+	// Update new emojis (dropping from top to center)
+	if (state->emoji_animating) {
+		for (int i = 0; i < 3; i++) {
+			double distance = state->emoji_target_y - state->emoji_y_positions[i];
 
-		if (fabs(distance) > EMOJI_SETTLE_THRESHOLD) {
-			// Move toward target with easing
-			state->emoji_y_positions[i] += movement;
-			if (state->emoji_y_positions[i] > state->emoji_target_y) {
+			if (fabs(distance) > EMOJI_SETTLE_THRESHOLD) {
+				// Move toward target
+				state->emoji_y_positions[i] += movement;
+				if (state->emoji_y_positions[i] > state->emoji_target_y) {
+					state->emoji_y_positions[i] = state->emoji_target_y;
+				}
+				all_settled = false;
+			} else {
 				state->emoji_y_positions[i] = state->emoji_target_y;
 			}
-			all_settled = false;
-		} else {
-			state->emoji_y_positions[i] = state->emoji_target_y;
+		}
+
+		if (all_settled) {
+			state->emoji_animating = false;
 		}
 	}
 
-	if (all_settled) {
-		state->emoji_animating = false;
-		// Timer will stop itself on next tick when it checks emoji_animating
+	// Update old emojis (falling off bottom)
+	if (state->has_old_emojis) {
+		for (int i = 0; i < 3; i++) {
+			state->old_emoji_y_positions[i] += movement;
+			// Check if still on screen (with some margin)
+			if (state->old_emoji_y_positions[i] < screen_height + 100) {
+				old_still_visible = true;
+			}
+		}
+
+		if (!old_still_visible) {
+			state->has_old_emojis = false;
+		}
 	}
 }
 
@@ -497,12 +515,30 @@ static bool render_frame(struct swaylock_surface *surface) {
 		}
 
 		// Update animation
-		update_emoji_animation(state, target_y);
+		update_emoji_animation(state, target_y, buffer_height);
 
-		// Draw each emoji at its animated position
 		double emoji_spacing = emoji_size * 1.5;
 		double start_x = (buffer_width / 2) - emoji_spacing;
 
+		// Draw old emojis falling off screen (if any)
+		if (state->has_old_emojis) {
+			for (int i = 0; i < 3; i++) {
+				cairo_text_extents_t extents;
+				cairo_text_extents(cairo, state->old_slot_emojis[i], &extents);
+
+				double x = start_x + (i * emoji_spacing) - (extents.width / 2 + extents.x_bearing);
+				double y = state->old_emoji_y_positions[i];
+
+				// Only draw if still visible
+				if (y < buffer_height + 100) {
+					cairo_move_to(cairo, x, y);
+					set_color_for_state(cairo, state, &state->args.colors.text);
+					cairo_show_text(cairo, state->old_slot_emojis[i]);
+				}
+			}
+		}
+
+		// Draw new emojis at their animated positions
 		for (int i = 0; i < 3; i++) {
 			cairo_text_extents_t extents;
 			cairo_text_extents(cairo, state->slot_emojis[i], &extents);
