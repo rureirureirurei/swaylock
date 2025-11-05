@@ -653,11 +653,14 @@ static bool render_frame(struct swaylock_surface *surface) {
 		cairo_font_extents(cairo, &fe);
 
 		// Calculate target y position for animation
+		// Use screen height, not buffer_height (which changes during particle animation)
 		double target_y;
 		if (draw_indicator) {
 			target_y = buffer_diameter + fe.height;
 		} else {
-			target_y = (buffer_height / 2) + (fe.height / 2 - fe.descent);
+			// Use actual screen height for consistent positioning
+			double screen_center_y = (surface->height * surface->scale) / 2;
+			target_y = screen_center_y + (fe.height / 2 - fe.descent);
 		}
 
 		// Update animation
