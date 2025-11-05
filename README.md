@@ -1,3 +1,5 @@
+# ever wanted to gamle whilst entering your pc password? 
+
 # swaylock
 
 swaylock is a screen locking utility for Wayland compositors. It is compatible
