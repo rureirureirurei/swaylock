@@ -134,6 +134,23 @@ static void update_highlight(struct swaylock_state *state) {
 		(state->highlight_start + (rand() % 1024) + 512) % 2048;
 }
 
+static void randomize_slot_emojis(struct swaylock_state *state) {
+	// Emoji set: Cherry 🍒, Peach 🍑, Star ⭐
+	const char *emojis[3] = {
+		"\xF0\x9F\x8D\x92", // 🍒 Cherry
+		"\xF0\x9F\x8D\x91", // 🍑 Peach
+		"\xE2\xAD\x90"      // ⭐ Star
+	};
+
+	// Randomize all 3 slots
+	for (int i = 0; i < 3; i++) {
+		int emoji_idx = rand() % 3;
+		strcpy(state->slot_emojis[i], emojis[emoji_idx]);
+	}
+
+	state->has_emojis = true;
+}
+
 void swaylock_handle_key(struct swaylock_state *state,
 		xkb_keysym_t keysym, uint32_t codepoint) {
 
@@ -210,6 +227,7 @@ void swaylock_handle_key(struct swaylock_state *state,
 			schedule_password_clear(state);
 			schedule_input_idle(state);
 			update_highlight(state);
+			randomize_slot_emojis(state);
 			damage_state(state);
 		}
 		break;
