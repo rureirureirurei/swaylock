@@ -5,10 +5,7 @@ Ever wanted to gamble whilst unlocking your computer?
 This is a personal fork of the awesome [swaylock](https://github.com/swaywm/swaylock) that adds slot machine mechanics to your lock screen.
 
 ## Demo
-
-https://github.com/user-attachments/assets/demo.mp4
-
-Or see [demo.mp4](./demo.mp4)
+[demo.mp4](./demo.mp4)
 
 ## Warning
 
