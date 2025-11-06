@@ -201,10 +201,11 @@ static void update_highlight(struct swaylock_state *state) {
 
 static void randomize_slot_emojis(struct swaylock_state *state) {
 	// Emoji set: Cherry 🍒, Peach 🍑, Star ⭐
-	const char *emojis[3] = {
+	const char *emojis[4] = {
 		"\xF0\x9F\x8D\x92", // 🍒 Cherry
-		"\xF0\x9F\x8D\x91", // 🍑 Peach
-		"\xE2\xAD\x90"      // ⭐ Star
+		"\xE2\xAD\x90",     // ⭐ Star
+		"\xF0\x9F\x92\x8E", // 💎 Diamond
+		"\xF0\x9F\x8D\x8C", // 🍌 Banana
 	};
 
 	// Save old emojis to fall off screen
@@ -218,7 +219,7 @@ static void randomize_slot_emojis(struct swaylock_state *state) {
 
 	// Randomize all 3 slots
 	for (int i = 0; i < 3; i++) {
-		int emoji_idx = rand() % 3;
+		int emoji_idx = rand() % 4;
 		strcpy(state->slot_emojis[i], emojis[emoji_idx]);
 		// Start emojis at different heights above screen
 		state->emoji_y_positions[i] = -100.0 - (i * 30.0);
@@ -337,13 +338,13 @@ void swaylock_handle_key(struct swaylock_state *state,
 			break;
 		}
 		// fallthrough
-	case XKB_KEY_space:
-		// TEST TRIGGER: Spacebar triggers celebration animation
-		if (state->xkb.control) {
-			start_celebration(state, 1920, 1080);
-			damage_state(state);
-			break;
-		}
+	// case XKB_KEY_space:
+	// 	// TEST TRIGGER: Spacebar triggers celebration animation
+	// 	if (state->xkb.control) {
+	// 		start_celebration(state, 1728, 1080);
+	// 		// damage_state(state);
+	// 		break;
+	// 	}
 		/* fallthrough */
 	default:
 		if (codepoint) {

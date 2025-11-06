@@ -18,6 +18,7 @@ add_project_arguments('-D_POSIX_C_SOURCE=200809L', language: 'c')
 add_project_arguments(cc.get_supported_arguments([
 	'-Wno-unused-parameter',
 	'-Wno-unused-result',
+	'-Wno-unused-function',
 	'-Wundef',
 	'-Wvla',
 ]), language: 'c')
